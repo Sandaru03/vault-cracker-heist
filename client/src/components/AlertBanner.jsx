@@ -10,21 +10,21 @@ export default function AlertBanner({ type = 'error', message, onClose }) {
     <div
       className={`relative flex items-start gap-3 p-3.5 rounded-lg border backdrop-blur-md mb-4 text-xs font-mono transition-all animate-fadeIn ${
         isError
-          ? 'bg-rose-950/60 border-rose-500/60 text-rose-200 shadow-[0_0_15px_rgba(244,63,94,0.3)]'
-          : 'bg-cyan-950/60 border-cyan-400/60 text-cyan-200 shadow-[0_0_15px_rgba(0,240,255,0.3)]'
+          ? 'bg-rose-950/80 border-rose-500/80 text-rose-200 shadow-[0_0_15px_rgba(244,63,94,0.35)]'
+          : 'bg-black/80 border-yellow-400 text-yellow-300 shadow-neon-gold'
       }`}
     >
       <div className="mt-0.5 shrink-0">
         {isError ? (
           <AlertCircle className="w-4 h-4 text-rose-400" />
         ) : (
-          <CheckCircle2 className="w-4 h-4 text-cyan-400" />
+          <CheckCircle2 className="w-4 h-4 text-yellow-400" />
         )}
       </div>
 
       <div className="flex-1 pr-4 leading-relaxed">
         <span className="font-bold tracking-wider uppercase mr-1">
-          {isError ? '[ACCESS_DENIED]' : '[SYSTEM_CONFIRMED]'}
+          {isError ? '[ACCESS_DENIED]' : '[ACCESS_GRANTED]'}
         </span>
         {message}
       </div>
@@ -41,4 +41,3 @@ export default function AlertBanner({ type = 'error', message, onClose }) {
     </div>
   );
 }
-
