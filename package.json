@@ -20,6 +20,8 @@
     "mysql"
   ],
   "author": "Vault Cracker Operations",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^9.2.5"
+  }
 }
-

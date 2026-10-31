@@ -281,3 +281,4 @@ export default function RegisterForm({ onSwitchToLogin }) {
     </div>
   );
 }
+

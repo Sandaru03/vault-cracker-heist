@@ -46,3 +46,4 @@ class VaultEventManager extends EventEmitter {
 }
 
 module.exports = new VaultEventManager();
+

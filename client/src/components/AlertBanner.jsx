@@ -41,3 +41,4 @@ export default function AlertBanner({ type = 'error', message, onClose }) {
     </div>
   );
 }
+

@@ -13,3 +13,4 @@ router.get('/me', verifyToken, authController.getMe);
 router.get('/session', verifyToken, authController.getMe);
 
 module.exports = router;
+
