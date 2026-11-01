@@ -99,25 +99,16 @@ function MainApp() {
     return <AuthView />;
   }
 
-  // When authenticated, show the Agent Dashboard with Navbar
+  // When authenticated, show the Clean Welcome Dashboard with Navbar
   return (
-    <div className="min-h-screen bg-[#0a0a0c] text-slate-100 flex flex-col justify-between selection:bg-yellow-400 selection:text-black">
-      <Navbar />
-      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-8">
-        <Dashboard />
-      </main>
-      <footer className="border-t border-yellow-500/20 bg-[#0a0a0c] py-4 px-6 text-center text-xs font-mono text-slate-500">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-          <div>
-            <span className="text-yellow-400 font-bold">VAULT CRACKER</span> // CYBER-HEIST OPERATIONS
-          </div>
-          <div className="flex items-center gap-3 text-[11px] text-slate-400">
-            <span>VIRTUAL IDENTITY ACTIVE</span>
-            <span>•</span>
-            <span>INFILTRATION STANDBY</span>
-          </div>
-        </div>
-      </footer>
+    <div className="min-h-screen bg-[#0a0a0c] vault-bg-overlay text-slate-100 flex flex-col justify-between selection:bg-yellow-400 selection:text-black">
+      <div className="fixed inset-0 bg-black/65 backdrop-blur-[2px] pointer-events-none" />
+      <div className="relative z-10 flex flex-col min-h-screen">
+        <Navbar />
+        <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 py-8 flex items-center justify-center">
+          <Dashboard />
+        </main>
+      </div>
     </div>
   );
 }

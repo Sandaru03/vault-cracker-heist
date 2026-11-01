@@ -4,8 +4,6 @@ require('dotenv').config();
 
 const { initDatabase, pool } = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
-const bananaApiService = require('./services/bananaApiService');
-const vaultEventManager = require('./events/eventManager');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -17,7 +15,7 @@ app.use(express.json());
 // Routes
 app.use('/api/auth', authRoutes);
 
-// System Health & Module Readiness Endpoint
+// System Health Endpoint
 app.get('/api/health', async (req, res) => {
   let dbStatus = 'DISCONNECTED';
   try {
@@ -29,9 +27,6 @@ app.get('/api/health', async (req, res) => {
     dbStatus = `ERROR: ${err.message}`;
   }
 
-  const bananaStatus = await bananaApiService.checkConnection();
-  const eventStatus = vaultEventManager.getStatus();
-
   res.json({
     system: 'Vault Cracker Operational Core',
     status: 'ONLINE',
@@ -39,11 +34,6 @@ app.get('/api/health', async (req, res) => {
     database: {
       status: dbStatus,
       target: process.env.DB_NAME || 'vault_cracker_db'
-    },
-    modules: {
-      virtual_identity: 'ACTIVE (Registration, Login, Session Management, MySQL)',
-      interoperability: bananaStatus,
-      event_driven_engine: eventStatus
     },
     timestamp: new Date().toISOString()
   });
