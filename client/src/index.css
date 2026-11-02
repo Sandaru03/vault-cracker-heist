@@ -14,6 +14,16 @@ body {
   overflow-x: hidden;
 }
 
+/* Hero Landing Background Cover (Payday Masked Robber) */
+.hero-bg-overlay {
+  background-image: 
+    linear-gradient(to right, rgba(8, 8, 10, 0.96) 0%, rgba(8, 8, 10, 0.82) 35%, rgba(8, 8, 10, 0.05) 60%, transparent 100%),
+    url('/landing-hero.jpg');
+  background-size: cover;
+  background-position: right top;
+  background-repeat: no-repeat;
+}
+
 /* Vault Background Cover */
 .vault-bg-overlay {
   background-image: 
@@ -38,12 +48,12 @@ body {
   text-shadow: 0 0 12px rgba(250, 204, 21, 0.8), 0 0 24px rgba(234, 179, 8, 0.4);
 }
 
-.text-glow-cyan {
-  text-shadow: 0 0 10px rgba(0, 240, 255, 0.7), 0 0 20px rgba(0, 240, 255, 0.4);
+.text-glow-amber {
+  text-shadow: 0 0 14px rgba(245, 158, 11, 0.9), 0 0 28px rgba(245, 158, 11, 0.4);
 }
 
-.text-glow-amber {
-  text-shadow: 0 0 12px rgba(245, 158, 11, 0.8);
+.text-glow-cyan {
+  text-shadow: 0 0 10px rgba(0, 240, 255, 0.7), 0 0 20px rgba(0, 240, 255, 0.4);
 }
 
 /* Custom scrollbars */
