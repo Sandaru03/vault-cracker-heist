@@ -1,11 +1,18 @@
-// Cyberpunk Web Audio API Sound Synthesizer (No external asset files needed)
-class CyberAudio {
+/**
+ * Audio Manager for Vault Cracker
+ * - BGM: Standard HTML5 Audio with loop for robbery heist soundtrack
+ * - SFX: Lightweight Web Audio API beeps for user interaction feedback
+ */
+class AudioManager {
   constructor() {
+    this.sfxEnabled = true;
+    this.bgmAudio = null;
+    this.isBgmPlaying = false;
     this.ctx = null;
-    this.enabled = true;
   }
 
-  init() {
+  // Initialize Web Audio Context for SFX (Click, Success, Error)
+  initAudioContext() {
     if (!this.ctx && typeof window !== 'undefined') {
       const AudioContext = window.AudioContext || window.webkitAudioContext;
       if (AudioContext) {
@@ -14,10 +21,26 @@ class CyberAudio {
     }
   }
 
-  playBeep(freq = 800, type = 'sine', duration = 0.08) {
-    if (!this.enabled) return;
+  // ----------------- SFX (Sound Effects for Inside Game) -----------------
+  playClick() {
+    if (!this.sfxEnabled) return;
+    this.playTone(1000, 0.04);
+  }
+
+  playSuccess() {
+    if (!this.sfxEnabled) return;
+    this.playTone(600, 0.08);
+    setTimeout(() => this.playTone(900, 0.12), 90);
+  }
+
+  playError() {
+    if (!this.sfxEnabled) return;
+    this.playTone(200, 0.15, 'sawtooth');
+  }
+
+  playTone(freq, duration, type = 'sine') {
     try {
-      this.init();
+      this.initAudioContext();
       if (!this.ctx) return;
       if (this.ctx.state === 'suspended') {
         this.ctx.resume();
@@ -33,27 +56,48 @@ class CyberAudio {
       osc.start();
       osc.stop(this.ctx.currentTime + duration);
     } catch {
-      // Ignore audio errors if blocked by browser policy
+      // Ignore audio policy restrictions
     }
   }
 
-  playSuccess() {
-    if (!this.enabled) return;
-    this.playBeep(520, 'sine', 0.1);
-    setTimeout(() => this.playBeep(780, 'sine', 0.15), 100);
-    setTimeout(() => this.playBeep(1040, 'triangle', 0.2), 220);
+  // ----------------- BGM (Robbery Heist Background Music) -----------------
+  getBgmAudio() {
+    if (!this.bgmAudio && typeof window !== 'undefined') {
+      this.bgmAudio = new Audio('/audio/heist-bgm.mp3');
+      this.bgmAudio.loop = true;
+      this.bgmAudio.volume = 0.35; // Comfortable volume
+    }
+    return this.bgmAudio;
   }
 
-  playError() {
-    if (!this.enabled) return;
-    this.playBeep(220, 'sawtooth', 0.15);
-    setTimeout(() => this.playBeep(180, 'sawtooth', 0.25), 120);
+  startBgm() {
+    const audio = this.getBgmAudio();
+    if (!audio) return;
+    audio.play()
+      .then(() => {
+        this.isBgmPlaying = true;
+      })
+      .catch((err) => {
+        console.warn('[BGM] Autoplay blocked, waiting for user click:', err);
+      });
   }
 
-  playClick() {
-    this.playBeep(1200, 'sine', 0.04);
+  stopBgm() {
+    if (this.bgmAudio) {
+      this.bgmAudio.pause();
+      this.isBgmPlaying = false;
+    }
+  }
+
+  toggleBgm() {
+    if (this.isBgmPlaying) {
+      this.stopBgm();
+      return false;
+    } else {
+      this.startBgm();
+      return true;
+    }
   }
 }
 
-export const cyberAudio = new CyberAudio();
-
+export const cyberAudio = new AudioManager();

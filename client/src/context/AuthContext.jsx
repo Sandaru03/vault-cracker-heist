@@ -27,6 +27,18 @@ export function AuthProvider({ children }) {
         return;
       }
 
+      // If session is a guest session, restore immediately without backend check
+      if (storedToken === 'guest-session-token') {
+        try {
+          const saved = localStorage.getItem('vault_agent');
+          if (saved) setAgent(JSON.parse(saved));
+        } catch {
+          // ignore
+        }
+        setLoading(false);
+        return;
+      }
+
       try {
         const res = await fetch('/api/auth/me', {
           headers: {
@@ -97,6 +109,24 @@ export function AuthProvider({ children }) {
     return data;
   };
 
+  // Play as guest immediately without database credentials
+  const playAsGuest = () => {
+    const guestAgent = {
+      id: 9999,
+      full_name: 'Guest Infiltrator',
+      nick_name: 'GUEST_OPERATIVE',
+      email: 'guest@vaultcracker.internal',
+      score: 0,
+      unlocked_badges: 'RECRUIT',
+      isGuest: true,
+    };
+    setToken('guest-session-token');
+    setAgent(guestAgent);
+    localStorage.setItem('vault_token', 'guest-session-token');
+    localStorage.setItem('vault_agent', JSON.stringify(guestAgent));
+    return guestAgent;
+  };
+
   const logout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
@@ -117,6 +147,7 @@ export function AuthProvider({ children }) {
         loading,
         login,
         register,
+        playAsGuest,
         logout,
         isAuthenticated: !!agent,
       }}
@@ -133,4 +164,3 @@ export function useAuth() {
   }
   return context;
 }
-

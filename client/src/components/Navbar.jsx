@@ -5,12 +5,12 @@ import { cyberAudio } from '../utils/audio';
 
 export default function Navbar() {
   const { agent, isAuthenticated } = useAuth();
-  const [audioEnabled, setAudioEnabled] = useState(cyberAudio.enabled);
+  const [sfxEnabled, setSfxEnabled] = useState(cyberAudio.sfxEnabled);
 
-  const toggleAudio = () => {
-    cyberAudio.enabled = !audioEnabled;
-    setAudioEnabled(!audioEnabled);
-    if (!audioEnabled) {
+  const toggleSfx = () => {
+    cyberAudio.sfxEnabled = !sfxEnabled;
+    setSfxEnabled(!sfxEnabled);
+    if (!sfxEnabled) {
       cyberAudio.playClick();
     }
   };
@@ -39,14 +39,14 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* Audio Control & Agent Info */}
+        {/* SFX Control & Agent Info (Inside Game / Dashboard) */}
         <div className="flex items-center gap-4">
           <button
-            onClick={toggleAudio}
+            onClick={toggleSfx}
             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-black/80 border border-yellow-500/40 hover:border-yellow-400 text-yellow-200 hover:text-yellow-100 text-xs font-mono transition-colors shadow-sm"
-            title={audioEnabled ? 'Disable Cyber Audio SFX' : 'Enable Cyber Audio SFX'}
+            title={sfxEnabled ? 'Disable Game SFX' : 'Enable Game SFX'}
           >
-            {audioEnabled ? (
+            {sfxEnabled ? (
               <>
                 <Volume2 className="w-3.5 h-3.5 text-yellow-400" />
                 <span className="hidden sm:inline text-[11px]">SFX ON</span>
