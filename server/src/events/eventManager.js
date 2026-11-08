@@ -1,49 +1,52 @@
 const EventEmitter = require('events');
 
 /**
- * Event-Driven Architecture Engine (Readiness Module)
- * Handles asynchronous dispatching and listening for:
- * 1. Keypad interaction events
- * 2. 40-second vault security countdown timer events
- * 3. Infiltration alert webhooks
+ * Event-Driven Vault Game Engine
+ * Manages events for keypad input, 60s countdown timer, alerts, and vault breach.
  */
 class VaultEventManager extends EventEmitter {
   constructor() {
     super();
-    this.isCountdownArmed = false;
-    this.countdownDuration = 40; // 40 seconds countdown readiness
+    this.countdownDuration = 60; // 60-second timer per puzzle
     this.setupListeners();
   }
 
+  // Event Listeners Registration
   setupListeners() {
+    // Event: Keypad press detected
     this.on('keypad:press', (data) => {
-      console.log(`[EVENT-ENGINE] Keypad input detected: key=${data.key}, timestamp=${Date.now()}`);
+      console.log(`[EVENT] Keypad Key Pressed: ${data.key} | Timestamp: ${Date.now()}`);
     });
 
-    this.on('countdown:arm', (data) => {
-      this.isCountdownArmed = true;
-      console.log(`[EVENT-ENGINE] 40s Countdown Subsystem Armed for Agent: ${data.agentId}`);
+    // Event: 60-second timer countdown started
+    this.on('timer:start', (data) => {
+      console.log(`[EVENT] 60s Timer Armed for Level ${data.level} | Agent: ${data.agentId || 'Guest'}`);
     });
 
-    this.on('countdown:tick', (data) => {
-      // Dispatches remaining seconds to listeners/websockets in future stages
+    // Event: Security Alert triggered on wrong code or timeout
+    this.on('alert:trigger', (data) => {
+      console.log(`[EVENT] Security Alert ${data.alertCount}/3 Triggered! Penalty: Level ${data.level}`);
     });
 
-    this.on('countdown:expire', (data) => {
-      console.log(`[EVENT-ENGINE] 40s Countdown Expired! Vault lockdown triggered.`);
+    // Event: Vault level completed or cracked
+    this.on('vault:success', (data) => {
+      console.log(`[EVENT] Level ${data.level} Completed! Vault Status: ${data.vaultCracked ? 'CRACKED' : 'NEXT LEVEL'}`);
+    });
+
+    // Event: 3rd Alert triggered - Agent Arrested
+    this.on('agent:arrest', (data) => {
+      console.log(`[EVENT] Maximum Alert Reached! Agent Arrested: ${data.agentId || 'Guest'}`);
     });
   }
 
+  // Get current status of event-driven engine
   getStatus() {
     return {
       module: 'Event-Driven Engine',
-      subsystems: ['Keypad Event Subsystem', '40s Countdown Subsystem'],
-      countdownDuration: this.countdownDuration,
-      isCountdownArmed: this.isCountdownArmed,
-      status: 'ARMED_AND_READY'
+      timerDuration: this.countdownDuration,
+      status: 'ACTIVE'
     };
   }
 }
 
 module.exports = new VaultEventManager();
-
