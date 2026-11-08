@@ -4,6 +4,7 @@ require('dotenv').config();
 
 const { initDatabase, pool } = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
+const gameRoutes = require('./routes/gameRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -12,8 +13,9 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// Routes
+// Routes: Auth and Event-Driven Game Engine
 app.use('/api/auth', authRoutes);
+app.use('/api/game', gameRoutes);
 
 // System Health Endpoint
 app.get('/api/health', async (req, res) => {
@@ -45,7 +47,7 @@ async function startServer() {
   app.listen(PORT, () => {
     console.log(`====================================================`);
     console.log(`[VAULT CRACKER] Cyber-Heist Core running on port ${PORT}`);
-    console.log(`[VAULT CRACKER] Virtual Identity Auth Module Active`);
+    console.log(`[VAULT CRACKER] Virtual Identity & Game Engine Active`);
     console.log(`[VAULT CRACKER] Ready for Infiltration`);
     console.log(`====================================================`);
   });

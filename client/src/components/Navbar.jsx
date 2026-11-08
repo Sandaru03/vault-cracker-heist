@@ -1,12 +1,17 @@
 import React, { useState } from 'react';
-import { Shield, Volume2, VolumeX } from 'lucide-react';
+import { Volume2, VolumeX, LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { cyberAudio } from '../utils/audio';
 
+/**
+ * Navbar Component
+ * Minimalist heist header with sound control and operative status (No shield logo).
+ */
 export default function Navbar() {
-  const { agent, isAuthenticated } = useAuth();
+  const { agent, isAuthenticated, logout } = useAuth();
   const [sfxEnabled, setSfxEnabled] = useState(cyberAudio.sfxEnabled);
 
+  // Toggle game sound effects
   const toggleSfx = () => {
     cyberAudio.sfxEnabled = !sfxEnabled;
     setSfxEnabled(!sfxEnabled);
@@ -16,56 +21,58 @@ export default function Navbar() {
   };
 
   return (
-    <header className="w-full border-b border-yellow-500/30 bg-[#0a0a0c]/90 backdrop-blur-md sticky top-0 z-50">
+    <header className="w-full border-b border-zinc-800 bg-zinc-950/90 backdrop-blur-md sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-        {/* Logo & System Brand */}
+        {/* Brand Name (Clean typography, no shield logo) */}
         <div className="flex items-center gap-3">
-          <div className="relative flex items-center justify-center w-10 h-10 rounded-lg bg-black border border-yellow-500/60 shadow-neon-gold">
-            <Shield className="w-5 h-5 text-yellow-400 animate-pulse" />
-          </div>
+          <div className="w-2.5 h-2.5 rounded-full bg-white animate-pulse" />
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-lg font-black tracking-widest text-yellow-400 uppercase text-glow-yellow font-mono">
+              <span className="text-lg font-black tracking-widest text-white uppercase font-mono">
                 VAULT CRACKER
               </span>
-              <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-yellow-950/80 border border-yellow-500/50 text-yellow-300">
+              <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-400">
                 v1.0.0
               </span>
             </div>
-            <p className="text-[10px] text-amber-200/70 uppercase tracking-widest flex items-center gap-1 font-mono">
-              <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-ping"></span>
-              HEIST PROTOCOL ONLINE
+            <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono">
+              INFILTRATION PROTOCOL ONLINE
             </p>
           </div>
         </div>
 
-        {/* SFX Control & Agent Info (Inside Game / Dashboard) */}
-        <div className="flex items-center gap-4">
+        {/* SFX Control & Session Logout */}
+        <div className="flex items-center gap-3">
           <button
             onClick={toggleSfx}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-black/80 border border-yellow-500/40 hover:border-yellow-400 text-yellow-200 hover:text-yellow-100 text-xs font-mono transition-colors shadow-sm"
-            title={sfxEnabled ? 'Disable Game SFX' : 'Enable Game SFX'}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-mono transition-colors"
+            title={sfxEnabled ? 'Disable SFX' : 'Enable SFX'}
           >
             {sfxEnabled ? (
               <>
-                <Volume2 className="w-3.5 h-3.5 text-yellow-400" />
-                <span className="hidden sm:inline text-[11px]">SFX ON</span>
+                <Volume2 className="w-3.5 h-3.5 text-white" />
+                <span className="hidden sm:inline text-[11px] font-bold">SFX ON</span>
               </>
             ) : (
               <>
-                <VolumeX className="w-3.5 h-3.5 text-slate-500" />
-                <span className="hidden sm:inline text-[11px] text-slate-500">SFX OFF</span>
+                <VolumeX className="w-3.5 h-3.5 text-zinc-500" />
+                <span className="hidden sm:inline text-[11px] text-zinc-500">SFX OFF</span>
               </>
             )}
           </button>
 
-          {isAuthenticated && agent && (
-            <div className="flex items-center gap-2 pl-2 border-l border-yellow-500/20 font-mono">
-              <span className="hidden sm:inline text-xs text-amber-200/60">AGENT:</span>
-              <span className="text-xs font-bold text-black px-2.5 py-1 rounded bg-yellow-400 border border-yellow-300 shadow-neon-gold">
-                {agent.nick_name}
-              </span>
-            </div>
+          {isAuthenticated && (
+            <button
+              onClick={() => {
+                cyberAudio.playClick();
+                logout();
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-red-950/60 border border-zinc-800 hover:border-red-800 text-zinc-400 hover:text-red-300 text-xs font-mono transition-colors"
+              title="Logout"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline text-[11px] font-bold">EXIT</span>
+            </button>
           )}
         </div>
       </div>
