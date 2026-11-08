@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, ShieldAlert, Mail, Lock, Check, AlertTriangle, Loader2, ArrowRight } from 'lucide-react';
+import { User, Mail, Lock, Check, AlertTriangle, Loader2, ArrowRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { cyberAudio } from '../utils/audio';
 import AlertBanner from './AlertBanner';
@@ -39,14 +39,14 @@ export default function RegisterForm() {
     setError('');
     setSuccess('');
 
-    // Form Validation Checks
+    // Input validation
     if (!formData.name.trim()) {
-      setError('Agent legal identifier (Name) is required.');
+      setError('Agent full name is required.');
       cyberAudio.playError();
       return;
     }
     if (!formData.nick_name.trim()) {
-      setError('Tactical operative Call-Sign (Nick Name) is required.');
+      setError('Nick name is required.');
       cyberAudio.playError();
       return;
     }
@@ -56,7 +56,7 @@ export default function RegisterForm() {
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
-      setError('Invalid cyber comms email format.');
+      setError('Invalid email format.');
       cyberAudio.playError();
       return;
     }
@@ -97,15 +97,12 @@ export default function RegisterForm() {
   };
 
   return (
-    <div className="w-full">
+    <div className="w-full font-mono">
       <div className="mb-6 text-center">
-        <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-black/90 border border-yellow-500/60 text-yellow-400 mb-3 shadow-neon-gold">
-          <ShieldAlert className="w-6 h-6 text-yellow-400" />
-        </div>
-        <h2 className="text-2xl font-black text-yellow-400 uppercase tracking-wider font-mono text-glow-yellow">
+        <h2 className="text-2xl font-black text-white uppercase tracking-wider">
           MINT VIRTUAL IDENTITY
         </h2>
-        <p className="text-xs text-amber-200/70 uppercase tracking-widest mt-1 font-mono">
+        <p className="text-xs text-zinc-400 uppercase tracking-widest mt-1">
           Syndicate Operative Recruitment
         </p>
       </div>
@@ -113,16 +110,15 @@ export default function RegisterForm() {
       <AlertBanner type="error" message={error} onClose={() => setError('')} />
       <AlertBanner type="success" message={success} onClose={() => setSuccess('')} />
 
-      <form onSubmit={handleSubmit} className="space-y-3.5 font-mono">
+      <form onSubmit={handleSubmit} className="space-y-3.5">
         {/* Name and Nick Name Row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs uppercase tracking-wider text-amber-200/90 mb-1 flex items-center justify-between">
-              <span>Full Name</span>
-              <span className="text-[10px] text-yellow-500 font-semibold">REQ</span>
+            <label className="block text-xs uppercase tracking-wider text-zinc-300 mb-1">
+              Full Name
             </label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-yellow-500/70">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-500">
                 <User className="w-4 h-4" />
               </div>
               <input
@@ -131,19 +127,18 @@ export default function RegisterForm() {
                 value={formData.name}
                 onChange={handleChange}
                 placeholder="Alexander Vance"
-                className="w-full bg-black/80 border border-yellow-500/30 focus:border-yellow-400 rounded-lg pl-9 pr-3 py-2 text-xs text-yellow-100 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-yellow-400 shadow-inner"
+                className="w-full bg-zinc-900/90 border border-zinc-700 focus:border-white rounded-lg pl-9 pr-3 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-white transition-colors"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs uppercase tracking-wider text-amber-200/90 mb-1 flex items-center justify-between">
-              <span>Tactical Call-Sign</span>
-              <span className="text-[10px] text-yellow-500 font-semibold">NICKNAME</span>
+            <label className="block text-xs uppercase tracking-wider text-zinc-300 mb-1">
+              Nick name
             </label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-yellow-500/70">
-                <span className="text-xs font-bold text-yellow-400">#</span>
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-500">
+                <span className="text-xs font-bold text-zinc-400">#</span>
               </div>
               <input
                 type="text"
@@ -151,7 +146,7 @@ export default function RegisterForm() {
                 value={formData.nick_name}
                 onChange={handleChange}
                 placeholder="Vortex"
-                className="w-full bg-black/80 border border-yellow-500/30 focus:border-yellow-400 rounded-lg pl-8 pr-3 py-2 text-xs text-yellow-100 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-yellow-400 shadow-inner"
+                className="w-full bg-zinc-900/90 border border-zinc-700 focus:border-white rounded-lg pl-8 pr-3 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-white transition-colors"
               />
             </div>
           </div>
@@ -159,12 +154,11 @@ export default function RegisterForm() {
 
         {/* Email Field */}
         <div>
-          <label className="block text-xs uppercase tracking-wider text-amber-200/90 mb-1 flex items-center justify-between">
-            <span>Operative Comms Email</span>
-            <span className="text-[10px] text-yellow-500 font-semibold">REQUIRED</span>
+          <label className="block text-xs uppercase tracking-wider text-zinc-300 mb-1">
+            Operative Comms Email
           </label>
           <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-yellow-500/70">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-500">
               <Mail className="w-4 h-4" />
             </div>
             <input
@@ -173,19 +167,18 @@ export default function RegisterForm() {
               value={formData.email}
               onChange={handleChange}
               placeholder="vortex@syndicate.internal"
-              className="w-full bg-black/80 border border-yellow-500/30 focus:border-yellow-400 rounded-lg pl-9 pr-3 py-2 text-xs text-yellow-100 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-yellow-400 shadow-inner"
+              className="w-full bg-zinc-900/90 border border-zinc-700 focus:border-white rounded-lg pl-9 pr-3 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-white transition-colors"
             />
           </div>
         </div>
 
         {/* Password Field */}
         <div>
-          <label className="block text-xs uppercase tracking-wider text-amber-200/90 mb-1 flex items-center justify-between">
-            <span>Passcode (Min 6 Characters)</span>
-            <span className="text-[10px] text-yellow-500 font-semibold">ENCRYPTED</span>
+          <label className="block text-xs uppercase tracking-wider text-zinc-300 mb-1">
+            Passcode (Min 6 Characters)
           </label>
           <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-yellow-500/70">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-500">
               <Lock className="w-4 h-4" />
             </div>
             <input
@@ -194,17 +187,17 @@ export default function RegisterForm() {
               value={formData.password}
               onChange={handleChange}
               placeholder="••••••••••••"
-              className="w-full bg-black/80 border border-yellow-500/30 focus:border-yellow-400 rounded-lg pl-9 pr-3 py-2 text-xs text-yellow-100 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-yellow-400 shadow-inner"
+              className="w-full bg-zinc-900/90 border border-zinc-700 focus:border-white rounded-lg pl-9 pr-3 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-white transition-colors"
             />
           </div>
         </div>
 
         {/* Confirm Password Field */}
         <div>
-          <label className="block text-xs uppercase tracking-wider text-amber-200/90 mb-1 flex items-center justify-between">
+          <label className="block text-xs uppercase tracking-wider text-zinc-300 mb-1 flex items-center justify-between">
             <span>Confirm Passcode</span>
             {passwordsMatch && (
-              <span className="text-[10px] text-yellow-400 flex items-center gap-1 font-semibold">
+              <span className="text-[10px] text-emerald-400 flex items-center gap-1 font-semibold">
                 <Check className="w-3 h-3" /> MATCHED
               </span>
             )}
@@ -215,7 +208,7 @@ export default function RegisterForm() {
             )}
           </label>
           <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-yellow-500/70">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-500">
               <Lock className="w-4 h-4" />
             </div>
             <input
@@ -224,12 +217,12 @@ export default function RegisterForm() {
               value={formData.confirm_password}
               onChange={handleChange}
               placeholder="••••••••••••"
-              className={`w-full bg-black/80 border rounded-lg pl-9 pr-3 py-2 text-xs text-yellow-100 placeholder-slate-600 focus:outline-none shadow-inner ${
+              className={`w-full bg-zinc-900/90 border rounded-lg pl-9 pr-3 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none transition-colors ${
                 passwordsMatch
-                  ? 'border-yellow-400 focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400'
+                  ? 'border-emerald-500 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400'
                   : passwordsMismatch
                   ? 'border-rose-500 focus:border-rose-400 focus:ring-1 focus:ring-rose-400'
-                  : 'border-yellow-500/30 focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400'
+                  : 'border-zinc-700 focus:border-white focus:ring-1 focus:ring-white'
               }`}
             />
           </div>
@@ -239,7 +232,7 @@ export default function RegisterForm() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full mt-3 py-3 px-4 rounded-xl bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 hover:from-yellow-300 hover:to-amber-300 text-black font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-neon-gold hover:shadow-neon-gold-lg transition-all duration-200 disabled:opacity-60 active:scale-[0.98]"
+          className="w-full mt-3 py-3.5 px-4 rounded-lg bg-white hover:bg-zinc-200 text-black font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-xl transition-all duration-150 active:scale-95 disabled:opacity-60"
         >
           {isSubmitting ? (
             <>

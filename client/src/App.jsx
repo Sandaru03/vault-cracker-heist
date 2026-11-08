@@ -6,17 +6,17 @@ import RegisterForm from './components/RegisterForm';
 import Dashboard from './components/Dashboard';
 import LandingHero from './components/LandingHero';
 import { cyberAudio } from './utils/audio';
-import { LogIn, UserPlus, Shield, Loader2, ArrowLeft } from 'lucide-react';
+import { LogIn, UserPlus, Loader2, ArrowLeft } from 'lucide-react';
 
 function AuthView({ onBack }) {
   const [activeTab, setActiveTab] = useState('login'); // 'login' | 'register'
 
   return (
-    <div className="min-h-screen w-full relative flex items-center justify-center p-4 sm:p-6 vault-bg-overlay font-mono">
-      {/* Dark vignette backdrop overlay for maximum contrast and pop */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] pointer-events-none" />
+    <div className="min-h-screen w-full relative flex items-center justify-center p-4 sm:p-6 hero-bg-overlay font-mono">
+      {/* Dark vignette backdrop overlay for clean contrast */}
+      <div className="absolute inset-0 bg-black/75 backdrop-blur-[2px] pointer-events-none" />
 
-      {/* Main Yellow & Black Auth Card */}
+      {/* Main Clean Heist Auth Card */}
       <div className="relative z-10 w-full max-w-lg animate-fadeIn">
         {/* Back to Landing Screen Button */}
         <div className="mb-4">
@@ -26,38 +26,35 @@ function AuthView({ onBack }) {
               cyberAudio.playClick();
               onBack();
             }}
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/90 hover:bg-zinc-900 border border-zinc-600 hover:border-white text-zinc-300 hover:text-white text-xs font-bold transition-all shadow-sm"
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 hover:border-zinc-500 text-zinc-300 hover:text-white text-xs font-bold transition-all"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>RETURN TO TITLE SCREEN</span>
           </button>
         </div>
 
-        {/* Brand Header */}
+        {/* Brand Header (No shield logo) */}
         <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-black border-2 border-yellow-400 text-yellow-400 mb-2 shadow-neon-gold">
-            <Shield className="w-8 h-8 text-yellow-400 animate-pulse" />
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-black text-yellow-400 uppercase tracking-widest text-glow-yellow">
+          <h1 className="text-3xl sm:text-4xl font-black text-white uppercase tracking-tight">
             VAULT CRACKER
           </h1>
-          <p className="text-xs text-amber-200/80 uppercase tracking-widest mt-1">
+          <p className="text-xs text-zinc-400 uppercase tracking-widest mt-1">
             CYBER-HEIST INFILTRATION GATEWAY
           </p>
         </div>
 
-        {/* Tab Switcher */}
-        <div className="flex rounded-xl bg-black/80 border border-yellow-500/40 p-1 mb-5 backdrop-blur-md shadow-neon-gold">
+        {/* Tab Switcher - Clean White & Dark Zinc */}
+        <div className="flex rounded-xl bg-zinc-900 border border-zinc-800 p-1 mb-5">
           <button
             type="button"
             onClick={() => {
               cyberAudio.playClick();
               setActiveTab('login');
             }}
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-xs font-black uppercase tracking-wider transition-all duration-200 ${
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-xs font-black uppercase tracking-wider transition-all duration-150 ${
               activeTab === 'login'
-                ? 'bg-gradient-to-r from-yellow-400 to-amber-400 text-black shadow-neon-gold scale-[1.01]'
-                : 'text-yellow-400/70 hover:text-yellow-200 hover:bg-black/60'
+                ? 'bg-white text-black shadow-lg'
+                : 'text-zinc-400 hover:text-white'
             }`}
           >
             <LogIn className="w-4 h-4" />
@@ -70,10 +67,10 @@ function AuthView({ onBack }) {
               cyberAudio.playClick();
               setActiveTab('register');
             }}
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-xs font-black uppercase tracking-wider transition-all duration-200 ${
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-xs font-black uppercase tracking-wider transition-all duration-150 ${
               activeTab === 'register'
-                ? 'bg-gradient-to-r from-yellow-400 to-amber-400 text-black shadow-neon-gold scale-[1.01]'
-                : 'text-yellow-400/70 hover:text-yellow-200 hover:bg-black/60'
+                ? 'bg-white text-black shadow-lg'
+                : 'text-zinc-400 hover:text-white'
             }`}
           >
             <UserPlus className="w-4 h-4" />
@@ -81,14 +78,8 @@ function AuthView({ onBack }) {
           </button>
         </div>
 
-        {/* Card Body */}
-        <div className="relative rounded-2xl bg-[#0c0c0e]/95 border-2 border-yellow-500/60 p-6 sm:p-8 backdrop-blur-xl shadow-vault-panel">
-          {/* Decorative Gold Corner Accents */}
-          <div className="absolute top-0 left-0 w-3.5 h-3.5 border-t-2 border-l-2 border-yellow-400 rounded-tl-md" />
-          <div className="absolute top-0 right-0 w-3.5 h-3.5 border-t-2 border-r-2 border-yellow-400 rounded-tr-md" />
-          <div className="absolute bottom-0 left-0 w-3.5 h-3.5 border-b-2 border-l-2 border-yellow-400 rounded-bl-md" />
-          <div className="absolute bottom-0 right-0 w-3.5 h-3.5 border-b-2 border-r-2 border-yellow-400 rounded-br-md" />
-
+        {/* Card Body - Clean Matte Black */}
+        <div className="rounded-2xl bg-zinc-950/95 border border-zinc-800 p-6 sm:p-8 shadow-2xl">
           {activeTab === 'login' ? <LoginForm /> : <RegisterForm />}
         </div>
       </div>
@@ -114,7 +105,7 @@ function MainApp() {
   // When authenticated, show the Clean Welcome Dashboard with Navbar
   if (isAuthenticated) {
     return (
-      <div className="min-h-screen bg-[#0a0a0c] vault-bg-overlay text-slate-100 flex flex-col justify-between selection:bg-yellow-400 selection:text-black">
+      <div className="min-h-screen bg-[#0a0a0c] vault-bg-overlay text-slate-100 flex flex-col justify-between selection:bg-white selection:text-black">
         <div className="fixed inset-0 bg-black/65 backdrop-blur-[2px] pointer-events-none" />
         <div className="relative z-10 flex flex-col min-h-screen">
           <Navbar />

@@ -87,7 +87,7 @@ export default function LandingHero({ onOpenLogin, onPlayAsGuest }) {
 
       {/* Minimal Bottom Bar */}
       <footer className="relative z-10 w-full text-[11px] text-zinc-600 flex items-center justify-between">
-        <span>VAULT CRACKER // HEIST SYSTEM</span>
+        <span>VAULT CRACKER</span>
       </footer>
     </div>
   );
