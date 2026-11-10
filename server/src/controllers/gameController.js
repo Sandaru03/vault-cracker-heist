@@ -1,75 +1,63 @@
 const eventManager = require('../events/eventManager');
+const bananaApiService = require('../services/bananaApiService');
 const { pool } = require('../config/db');
 
-// Helper: Generate very simple math puzzle based on current level
-function generateEasyPuzzle(level) {
-  if (level === 1) {
-    // Level 1: Very easy single-digit addition (e.g. 4 + 3 = 7)
-    const a = Math.floor(Math.random() * 5) + 2; // 2 to 6
-    const b = Math.floor(Math.random() * 4) + 1; // 1 to 4
-    return {
-      question: `${a} + ${b} = ?`,
-      solution: `${a + b}`,
-      hint: 'Basic addition'
-    };
-  } else if (level === 2) {
-    // Level 2: Easy subtraction (e.g. 15 - 6 = 9)
-    const a = Math.floor(Math.random() * 6) + 10; // 10 to 15
-    const b = Math.floor(Math.random() * 5) + 2;  // 2 to 6
-    return {
-      question: `${a} - ${b} = ?`,
-      solution: `${a - b}`,
-      hint: 'Simple subtraction'
-    };
-  } else {
-    // Level 3: Easy small multiplication (e.g. 3 x 4 = 12)
-    const a = Math.floor(Math.random() * 3) + 2; // 2 to 4
-    const b = Math.floor(Math.random() * 4) + 2; // 2 to 5
-    return {
-      question: `${a} x ${b} = ?`,
-      solution: `${a * b}`,
-      hint: 'Small multiplication'
-    };
+/**
+ * Controller: Get live cipher puzzle from Banana REST API (Module 2: Interoperability)
+ * Fetches the visual equation image and integer solution from Marc Conrad's external API.
+ */
+async function getCipherPuzzle(level) {
+  const puzzleData = await bananaApiService.fetchPuzzle();
+  return {
+    imageUrl: puzzleData.question,
+    hint: 'Solve visual banana equation and input 0-9 code',
+    solution: puzzleData.solution,
+    source: puzzleData.source
+  };
+}
+
+// Viva comment: Controller to start a new infiltration mission with Banana API puzzle
+async function startMission(req, res) {
+  try {
+    const agentId = req.body.agentId || (req.agent ? req.agent.id : 9999);
+    const puzzle = await getCipherPuzzle(1);
+
+    // Event: Emit timer start event (60s armed)
+    eventManager.emit('timer:start', { agentId, level: 1 });
+
+    return res.status(200).json({
+      success: true,
+      level: 1,
+      maxLevels: 3,
+      timer: 60,
+      alertCount: 0,
+      puzzle: {
+        imageUrl: puzzle.imageUrl,
+        hint: puzzle.hint
+      },
+      _internalSolution: puzzle.solution
+    });
+  } catch (error) {
+    console.error('[START MISSION ERROR]:', error);
+    return res.status(500).json({ success: false, message: 'Failed to initialize mission.' });
   }
 }
 
-// Controller: Start a new heist infiltration mission
-async function startMission(req, res) {
-  const agentId = req.body.agentId || (req.agent ? req.agent.id : 9999);
-  const puzzle = generateEasyPuzzle(1);
-
-  // Event: Trigger 60-second timer countdown
-  eventManager.emit('timer:start', { agentId, level: 1 });
-
-  return res.status(200).json({
-    success: true,
-    level: 1,
-    maxLevels: 3,
-    timer: 60,
-    alertCount: 0,
-    puzzle: {
-      question: puzzle.question,
-      hint: puzzle.hint
-    },
-    _internalSolution: puzzle.solution
-  });
-}
-
-// Controller: Submit keypad answer and evaluate events (Level up / Alerts / Demotion / Arrest)
+// Viva comment: Controller to evaluate keypad submission, handle level progression & alerts
 async function submitAnswer(req, res) {
   try {
     const { answer, expectedSolution, currentLevel, alertCount, agentId } = req.body;
     const isCorrect = String(answer).trim() === String(expectedSolution).trim();
 
-    // Event: Emit keypad button press
+    // Event: Emit keypad button press event
     eventManager.emit('keypad:press', { key: answer });
 
-    // Scenario A: User answered correctly
+    // Case 1: Operative solved puzzle correctly
     if (isCorrect) {
       if (currentLevel < 3) {
-        // Advance to next level
+        // Advance to next security layer
         const nextLevel = currentLevel + 1;
-        const nextPuzzle = generateEasyPuzzle(nextLevel);
+        const nextPuzzle = await getCipherPuzzle(nextLevel);
 
         // Event: Level success
         eventManager.emit('vault:success', { level: nextLevel, vaultCracked: false, agentId });
@@ -79,17 +67,16 @@ async function submitAnswer(req, res) {
           correct: true,
           level: nextLevel,
           vaultCracked: false,
-          alertCount: alertCount, // preserve current alert status or reset
+          alertCount: alertCount,
           puzzle: {
-            question: nextPuzzle.question,
+            imageUrl: nextPuzzle.imageUrl,
             hint: nextPuzzle.hint
           },
           _internalSolution: nextPuzzle.solution,
-          message: `Level ${currentLevel} cleared! Moving to Level ${nextLevel}.`
+          message: `Layer ${currentLevel} decrypted! Infiltrating Layer ${nextLevel}.`
         });
       } else {
-        // Level 3 Completed: Vault is Cracked!
-        // Database: Update agent score in MySQL on victory
+        // Layer 3 solved: Vault Cracked!
         if (agentId && agentId !== 9999) {
           try {
             await pool.query(
@@ -109,17 +96,17 @@ async function submitAnswer(req, res) {
           correct: true,
           level: 3,
           vaultCracked: true,
-          message: 'ACCESS GRANTED! VAULT SUCCESSFULLY CRACKED!'
+          message: 'CIPHER DECRYPTED! VAULT COMPROMISED SUCCESSFULLY!'
         });
       }
     }
 
-    // Scenario B: Incorrect Answer or Timeout (Handle 3-Alert rules)
+    // Case 2: Incorrect code entered or timer expired (3-Alert strikes)
     const newAlertCount = (alertCount || 0) + 1;
 
-    // Alert 1: First strike warning
+    // Alert 1: Strike 1 warning
     if (newAlertCount === 1) {
-      const nextPuzzle = generateEasyPuzzle(currentLevel);
+      const nextPuzzle = await getCipherPuzzle(currentLevel);
       eventManager.emit('alert:trigger', { alertCount: 1, level: currentLevel, agentId });
 
       return res.status(200).json({
@@ -130,18 +117,18 @@ async function submitAnswer(req, res) {
         demoted: false,
         arrested: false,
         puzzle: {
-          question: nextPuzzle.question,
+          imageUrl: nextPuzzle.imageUrl,
           hint: nextPuzzle.hint
         },
         _internalSolution: nextPuzzle.solution,
-        message: 'INCORRECT CODE! Alert 1 of 3 Triggered.'
+        message: 'CIPHER MISMATCH! Security Alert 1 of 3 Triggered.'
       });
     }
 
-    // Alert 2: Second strike - Level Demoted (if level > 1) & popup warning
+    // Alert 2: Strike 2 penalty - Level demoted & warning modal
     if (newAlertCount === 2) {
       const newLevel = currentLevel > 1 ? currentLevel - 1 : 1;
-      const nextPuzzle = generateEasyPuzzle(newLevel);
+      const nextPuzzle = await getCipherPuzzle(newLevel);
       eventManager.emit('alert:trigger', { alertCount: 2, level: newLevel, agentId });
 
       return res.status(200).json({
@@ -152,7 +139,7 @@ async function submitAnswer(req, res) {
         demoted: currentLevel > 1,
         arrested: false,
         puzzle: {
-          question: nextPuzzle.question,
+          imageUrl: nextPuzzle.imageUrl,
           hint: nextPuzzle.hint
         },
         _internalSolution: nextPuzzle.solution,
@@ -160,7 +147,7 @@ async function submitAnswer(req, res) {
       });
     }
 
-    // Alert 3: Third strike - Security Lockdown & Agent Arrested
+    // Alert 3: Strike 3 - Maximum security lockdown & operative arrested
     eventManager.emit('agent:arrest', { agentId });
 
     return res.status(200).json({
@@ -174,8 +161,8 @@ async function submitAnswer(req, res) {
     });
 
   } catch (error) {
-    console.error('[GAME ERROR]:', error);
-    return res.status(500).json({ success: false, message: 'Game engine error.' });
+    console.error('[GAME SUBMIT ERROR]:', error);
+    return res.status(500).json({ success: false, message: 'Game engine processing error.' });
   }
 }
 
@@ -183,4 +170,3 @@ module.exports = {
   startMission,
   submitAnswer
 };
-
