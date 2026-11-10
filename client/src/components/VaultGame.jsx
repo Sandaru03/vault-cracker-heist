@@ -4,35 +4,38 @@ import {
   RotateCcw, 
   ArrowLeft, 
   AlertTriangle, 
-  CheckCircle, 
-  Lock, 
   Unlock, 
   Siren, 
-  Timer as TimerIcon 
+  Timer as TimerIcon,
+  Loader2,
+  HelpCircle
 } from 'lucide-react';
 import { cyberAudio } from '../utils/audio';
 
 /**
  * Event-Driven Vault Game Component
+ * Powered by Marc Conrad's Banana REST API (Module 2: Interoperability)
  * Features:
- * - 3 Progressive security levels (Clear all 3 to crack vault)
- * - Simple arithmetic decryption puzzles
- * - 60-second countdown timer per puzzle
- * - 3-Alert Security System:
- *     Alert 1: Warning + new puzzle + 60s reset
+ * - Live Visual Banana Cipher Image from external Banana REST API
+ * - 3 Progressive security levels to crack the vault
+ * - 60-second countdown timer per puzzle (pauses on modal)
+ * - 3-Alert Security Strike System:
+ *     Alert 1: Warning + new Banana puzzle + 60s reset
  *     Alert 2: Level demotion (-1 level) + Warning Modal (1 chance left!) + 60s reset
  *     Alert 3: Maximum breach -> Operative Arrested
  */
 export default function VaultGame({ agent, onExit }) {
-  // Game state
+  // Game states
   const [level, setLevel] = useState(1);
   const [alertCount, setAlertCount] = useState(0);
   const [timeLeft, setTimeLeft] = useState(60);
   const [enteredCode, setEnteredCode] = useState('');
-  const [puzzle, setPuzzle] = useState({ question: '', hint: '' });
+  const [puzzleImage, setPuzzleImage] = useState('');
   const [internalSolution, setInternalSolution] = useState('');
+  const [imageLoading, setImageLoading] = useState(true);
+  const [showHint, setShowHint] = useState(false);
   
-  // Modals and status states
+  // Status and modal states
   const [loading, setLoading] = useState(true);
   const [showDemotionModal, setShowDemotionModal] = useState(false);
   const [isArrested, setIsArrested] = useState(false);
@@ -41,49 +44,78 @@ export default function VaultGame({ agent, onExit }) {
 
   const timerRef = useRef(null);
 
-  // Viva comment: Initialize new game mission from backend API
-  const startNewGame = async () => {
-    try {
-      setLoading(true);
-      setIsArrested(false);
-      setIsVaultCracked(false);
-      setShowDemotionModal(false);
-      setEnteredCode('');
-      setAlertCount(0);
+  // Viva comment: Fetch a live puzzle image from backend or directly from Banana REST API
+  const fetchNewBananaPuzzle = async () => {
+    setImageLoading(true);
+    setShowHint(false);
 
-      const response = await fetch('/api/game/start', {
+    try {
+      // Direct call to Marc Conrad Banana API (with full CORS support)
+      const res = await fetch('https://marcconrad.com/uob/banana/api.php?out=json');
+      if (res.ok) {
+        const data = await res.json();
+        return {
+          imageUrl: data.question,
+          solution: String(data.solution)
+        };
+      }
+    } catch (e) {
+      console.warn('Direct Banana API call failed, trying backend proxy:', e);
+    }
+
+    try {
+      // Backend API proxy fallback
+      const res = await fetch('/api/game/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ agentId: agent?.id || 9999 })
       });
-
-      const data = await response.json();
-      if (data.success) {
-        setLevel(data.level);
-        setPuzzle(data.puzzle);
-        setInternalSolution(data._internalSolution);
-        setTimeLeft(data.timer || 60);
-        setStatusMessage('INFILTRATION ONLINE. CRACK THE CODE.');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.puzzle) {
+          return {
+            imageUrl: data.puzzle.imageUrl,
+            solution: String(data._internalSolution)
+          };
+        }
       }
-    } catch (err) {
-      console.error('Failed to start game:', err);
-      // Fallback offline puzzle if backend fails
-      setLevel(1);
-      setPuzzle({ question: '4 + 3 = ?', hint: 'Basic addition' });
-      setInternalSolution('7');
-      setTimeLeft(60);
-    } finally {
-      setLoading(false);
+    } catch (e) {
+      console.warn('Backend proxy failed, using offline fallback:', e);
     }
+
+    // Offline failsafe puzzle
+    return {
+      imageUrl: 'https://www.sanfoh.com/uob/banana/data/te3ddfde2fa63216d10fb60d0edn90.png',
+      solution: '0'
+    };
   };
 
-  // Viva comment: Start mission on component mount
+  // Viva comment: Initialize new game mission on start
+  const startNewGame = async () => {
+    setLoading(true);
+    setIsArrested(false);
+    setIsVaultCracked(false);
+    setShowDemotionModal(false);
+    setEnteredCode('');
+    setAlertCount(0);
+    setLevel(1);
+    setTimeLeft(60);
+    setStatusMessage('INFILTRATION ONLINE. ENTER DECRYPTION CODE.');
+
+    const puzzle = await fetchNewBananaPuzzle();
+    setPuzzleImage(puzzle.imageUrl);
+    setInternalSolution(puzzle.solution);
+    setImageLoading(false);
+    setLoading(false);
+  };
+
+  // Start on mount
   useEffect(() => {
     startNewGame();
     return () => clearInterval(timerRef.current);
   }, []);
 
-  // Viva comment: 60-second countdown timer interval handler
+  // Viva comment: 60-second countdown timer. Pauses when any modal is open!
   useEffect(() => {
     if (loading || isArrested || isVaultCracked || showDemotionModal) {
       clearInterval(timerRef.current);
@@ -104,92 +136,127 @@ export default function VaultGame({ agent, onExit }) {
     return () => clearInterval(timerRef.current);
   }, [loading, isArrested, isVaultCracked, showDemotionModal, level, alertCount, internalSolution]);
 
-  // Viva comment: Triggered when 60s timer expires without an answer
+  // Viva comment: 60s Timer expired without answer -> triggers alert strike
   const handleTimeout = () => {
-    cyberAudio.playAlert();
-    submitSolution('TIMEOUT');
+    if (cyberAudio?.playAlert) cyberAudio.playAlert();
+    processAnswer('TIMEOUT');
   };
 
-  // Viva comment: Handle virtual keypad number click
-  const handleKeyClick = (num) => {
-    if (enteredCode.length < 6 && !isArrested && !isVaultCracked) {
-      cyberAudio.playClick();
-      setEnteredCode((prev) => prev + num);
+  // Viva comment: Virtual keypad click - single digit input (0-9)
+  const handleKeyClick = (digit) => {
+    if (!isArrested && !isVaultCracked && !showDemotionModal) {
+      if (cyberAudio?.playClick) cyberAudio.playClick();
+      setEnteredCode(String(digit)); // Direct single digit entry
     }
   };
 
-  // Viva comment: Clear entered keypad input
+  // Viva comment: Clear entered digit
   const handleClear = () => {
-    cyberAudio.playClick();
+    if (cyberAudio?.playClick) cyberAudio.playClick();
     setEnteredCode('');
   };
 
-  // Viva comment: Submit answer to server and handle game events
-  const submitSolution = async (forcedAnswer = null) => {
-    const answerToSubmit = forcedAnswer !== null ? forcedAnswer : enteredCode;
-    if (!answerToSubmit && forcedAnswer === null) return;
+  // Viva comment: Core Game Engine - evaluates answer and triggers level up, alerts, demotion or arrest
+  const processAnswer = async (forcedValue = null) => {
+    const valueToCheck = forcedValue !== null ? forcedValue : enteredCode;
+    if (!valueToCheck && forcedValue === null) return;
 
-    try {
-      const response = await fetch('/api/game/submit', {
+    const isCorrect = String(valueToCheck).trim() === String(internalSolution).trim();
+    setEnteredCode('');
+
+    // Case 1: Operative Solved Correctly!
+    if (isCorrect) {
+      if (cyberAudio?.playSuccess) cyberAudio.playSuccess();
+
+      if (level === 1) {
+        // Advance to Level 2
+        setLevel(2);
+        setTimeLeft(60);
+        setStatusMessage('LAYER 1 DECRYPTED! ADVANCING TO LAYER 2.');
+        const nextPuzzle = await fetchNewBananaPuzzle();
+        setPuzzleImage(nextPuzzle.imageUrl);
+        setInternalSolution(nextPuzzle.solution);
+        setImageLoading(false);
+      } else if (level === 2) {
+        // Advance to Level 3
+        setLevel(3);
+        setTimeLeft(60);
+        setStatusMessage('LAYER 2 DECRYPTED! ADVANCING TO FINAL LAYER 3.');
+        const nextPuzzle = await fetchNewBananaPuzzle();
+        setPuzzleImage(nextPuzzle.imageUrl);
+        setInternalSolution(nextPuzzle.solution);
+        setImageLoading(false);
+      } else {
+        // Level 3 Solved -> Vault Cracked!
+        setIsVaultCracked(true);
+        setStatusMessage('ALL 3 LAYERS BREACHED! VAULT CRACKED!');
+      }
+
+      // Notify backend API
+      fetch('/api/game/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          answer: answerToSubmit,
+          answer: valueToCheck,
           expectedSolution: internalSolution,
           currentLevel: level,
           alertCount: alertCount,
           agentId: agent?.id || 9999
         })
-      });
+      }).catch(() => {});
 
-      const data = await response.json();
-      setEnteredCode('');
-
-      if (data.correct) {
-        cyberAudio.playSuccess();
-        if (data.vaultCracked) {
-          // All 3 levels cracked!
-          setIsVaultCracked(true);
-          setStatusMessage(data.message);
-        } else {
-          // Advanced to next level
-          setLevel(data.level);
-          setPuzzle(data.puzzle);
-          setInternalSolution(data._internalSolution);
-          setTimeLeft(60);
-          setStatusMessage(data.message);
-        }
-      } else {
-        // Incorrect answer or timeout
-        cyberAudio.playAlert();
-        setAlertCount(data.alertCount);
-
-        if (data.arrested) {
-          // Alert 3 triggered: Operative arrested
-          setIsArrested(true);
-          setStatusMessage(data.message);
-        } else if (data.alertCount === 2) {
-          // Alert 2 triggered: Level demoted and show popup modal
-          setLevel(data.level);
-          setPuzzle(data.puzzle);
-          setInternalSolution(data._internalSolution);
-          setTimeLeft(60);
-          setShowDemotionModal(true);
-          setStatusMessage(data.message);
-        } else {
-          // Alert 1 triggered: Warning strike
-          setPuzzle(data.puzzle);
-          setInternalSolution(data._internalSolution);
-          setTimeLeft(60);
-          setStatusMessage(data.message);
-        }
-      }
-    } catch (err) {
-      console.error('Failed to submit answer:', err);
+      return;
     }
+
+    // Case 2: Wrong Answer or 60s Timeout (Alert Strike System)
+    if (cyberAudio?.playAlert) cyberAudio.playAlert();
+    const newAlertCount = alertCount + 1;
+    setAlertCount(newAlertCount); // Updates [ALERT 1], [ALERT 2], [ALERT 3] indicators immediately!
+
+    if (newAlertCount === 1) {
+      // Alert 1: First Strike Warning
+      setTimeLeft(60);
+      setStatusMessage('SECURITY ALERT 1/3 TRIGGERED! CIPHER MISMATCH.');
+      const nextPuzzle = await fetchNewBananaPuzzle();
+      setPuzzleImage(nextPuzzle.imageUrl);
+      setInternalSolution(nextPuzzle.solution);
+      setImageLoading(false);
+    } else if (newAlertCount === 2) {
+      // Alert 2: Second Strike - Level Demoted & Popup Warning Modal!
+      const newLvl = level > 1 ? level - 1 : 1;
+      setLevel(newLvl); // Demotes level if level was 2 or 3!
+      setTimeLeft(60);
+      setShowDemotionModal(true); // Popup modal
+      setStatusMessage(
+        level > 1 
+          ? `SECURITY ALERT 2/3! LEVEL DEMOTED TO LAYER ${newLvl}!`
+          : 'SECURITY ALERT 2/3! 1 CHANCE LEFT BEFORE ARREST!'
+      );
+      const nextPuzzle = await fetchNewBananaPuzzle();
+      setPuzzleImage(nextPuzzle.imageUrl);
+      setInternalSolution(nextPuzzle.solution);
+      setImageLoading(false);
+    } else {
+      // Alert 3: Third Strike - Maximum Security Lockdown & Operative Arrested!
+      setIsArrested(true);
+      setStatusMessage('SECURITY LOCKDOWN! OPERATIVE ARRESTED (3/3 ALERTS)!');
+    }
+
+    // Notify backend API
+    fetch('/api/game/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        answer: valueToCheck,
+        expectedSolution: internalSolution,
+        currentLevel: level,
+        alertCount: newAlertCount,
+        agentId: agent?.id || 9999
+      })
+    }).catch(() => {});
   };
 
-  // Viva comment: Keyboard listener for direct number typing and Enter
+  // Keyboard listener for typing 0-9, Backspace, and Enter
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (showDemotionModal || isArrested || isVaultCracked) return;
@@ -198,7 +265,7 @@ export default function VaultGame({ agent, onExit }) {
       } else if (e.key === 'Backspace') {
         handleClear();
       } else if (e.key === 'Enter') {
-        submitSolution();
+        processAnswer();
       }
     };
 
@@ -207,230 +274,255 @@ export default function VaultGame({ agent, onExit }) {
   }, [enteredCode, internalSolution, level, alertCount, showDemotionModal, isArrested, isVaultCracked]);
 
   return (
-    <div className="w-full max-w-xl mx-auto space-y-5 font-mono animate-fadeIn py-4">
-      {/* Top Navigation & Exit Button */}
+    <div className="w-full max-w-4xl mx-auto space-y-4 font-mono animate-fadeIn py-2">
+      {/* Top Header: Return Button */}
       <div className="flex items-center justify-between">
         <button
           onClick={() => {
-            cyberAudio.playClick();
+            if (cyberAudio?.playClick) cyberAudio.playClick();
             onExit();
           }}
           className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-white text-xs font-bold transition-all"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
-          <span>ABORT TO DASHBOARD</span>
+          <span>RETURN TO DASHBOARD</span>
         </button>
-
-        <span className="text-[11px] text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          HEIST PROTOCOL ENGAGED
-        </span>
       </div>
 
-      {/* Main Terminal Box */}
-      <div className="rounded-2xl bg-zinc-950 border border-zinc-800 p-6 sm:p-8 shadow-2xl relative overflow-hidden">
-        {/* Header: Level Status & Countdown Timer */}
-        <div className="flex items-center justify-between pb-4 border-b border-zinc-800/80 mb-5">
-          {/* Level Tracker */}
+      {/* Status Bar: Level, Countdown Timer (60s), Security Strikes (Alerts 1-3) */}
+      <div className="rounded-2xl bg-zinc-950 border border-zinc-800 p-4 sm:p-5 shadow-xl flex flex-wrap items-center justify-between gap-4">
+        {/* Layer Level */}
+        <div>
+          <span className="text-[10px] text-zinc-500 uppercase tracking-wider block font-bold">
+            SECURITY LAYER
+          </span>
+          <span className="text-xl sm:text-2xl font-black text-white tracking-wider">
+            LEVEL {level} <span className="text-zinc-600 text-sm font-normal">/ 3</span>
+          </span>
+        </div>
+
+        {/* 60s Countdown Timer */}
+        <div className="text-center sm:text-right">
+          <span className="text-[10px] text-zinc-500 uppercase tracking-wider block font-bold flex items-center justify-center sm:justify-end gap-1">
+            <TimerIcon className="w-3 h-3 text-zinc-400" /> TIME REMAINING
+          </span>
+          <span className={`text-xl sm:text-2xl font-black tracking-widest ${
+            timeLeft <= 10 ? 'text-red-500 animate-pulse' : 'text-white'
+          }`}>
+            {String(Math.floor(timeLeft / 60)).padStart(2, '0')}:{String(timeLeft % 60).padStart(2, '0')}
+          </span>
+        </div>
+
+        {/* 3-Alert Security Strikes (Alert 1, Alert 2, Alert 3) */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-zinc-400 font-bold uppercase tracking-wider flex items-center gap-1.5 mr-1">
+            <Siren className={`w-4 h-4 ${alertCount > 0 ? 'text-red-500 animate-bounce' : 'text-zinc-600'}`} />
+            STRIKES:
+          </span>
+          {[1, 2, 3].map((strike) => (
+            <div
+              key={strike}
+              className={`px-3 py-1.5 rounded-lg text-xs font-black tracking-wider transition-all duration-300 border ${
+                alertCount >= strike
+                  ? 'bg-red-600 text-white border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.7)] scale-105'
+                  : 'bg-zinc-900 text-zinc-600 border-zinc-800'
+              }`}
+            >
+              ALERT {strike}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Main Game Interface: 2-Column Clean Heist Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        {/* Left Column (7 cols): Clean Banana API Visual Puzzle Image */}
+        <div className="lg:col-span-7 rounded-2xl bg-zinc-950 border border-zinc-800 p-5 shadow-2xl flex flex-col justify-between">
           <div>
-            <span className="text-[10px] text-zinc-400 uppercase tracking-wider block font-bold">
-              SECURITY LAYER
-            </span>
-            <div className="flex items-center gap-2 mt-0.5">
-              <span className="text-xl sm:text-2xl font-black text-white tracking-wider">
-                LEVEL {level} <span className="text-zinc-600 text-sm font-normal">/ 3</span>
+            {/* Screen Header with Discrete Intel Hint Toggle */}
+            <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80 mb-4">
+              <span className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                LAYER {level} CIPHER DECRYPTION
+              </span>
+
+              {/* Discrete Hint Button */}
+              <button
+                type="button"
+                onClick={() => setShowHint(!showHint)}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-[11px] text-zinc-400 hover:text-white transition-all font-mono"
+                title="Toggle Decryption Clue"
+              >
+                <HelpCircle className="w-3.5 h-3.5 text-zinc-400" />
+                <span>{showHint ? `HINT: [ ${internalSolution} ]` : 'CIPHER HINT'}</span>
+              </button>
+            </div>
+
+            {/* Visual Puzzle Image Display */}
+            <div className="relative rounded-xl bg-white p-3 min-h-[230px] flex items-center justify-center overflow-hidden shadow-inner">
+              {imageLoading && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-white z-10 text-zinc-600">
+                  <Loader2 className="w-8 h-8 animate-spin text-zinc-700" />
+                  <span className="text-xs font-mono font-bold">FETCHING CIPHER...</span>
+                </div>
+              )}
+              {puzzleImage ? (
+                <img
+                  src={puzzleImage}
+                  alt="Banana Cipher Puzzle"
+                  className={`max-h-[260px] w-auto object-contain mx-auto transition-opacity duration-300 ${
+                    imageLoading ? 'opacity-0' : 'opacity-100'
+                  }`}
+                  onLoad={() => setImageLoading(false)}
+                  onError={() => setImageLoading(false)}
+                />
+              ) : (
+                <div className="text-xs text-zinc-500 font-mono">NO CIPHER RECEIVED</div>
+              )}
+            </div>
+          </div>
+
+          {/* Status Message */}
+          {statusMessage && (
+            <div className="mt-4 p-2.5 rounded-lg bg-zinc-900/60 border border-zinc-800 text-center">
+              <p className="text-[11px] text-zinc-400 font-mono tracking-wide">
+                {statusMessage}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Right Column (5 cols): CIPHER TERMINAL (KEYPAD) */}
+        <div className="lg:col-span-5 rounded-2xl bg-zinc-950 border border-zinc-800 p-5 shadow-2xl flex flex-col justify-between">
+          <div>
+            {/* Terminal Header */}
+            <div className="text-center pb-3 border-b border-zinc-800/80 mb-4">
+              <span className="text-xs font-black text-white uppercase tracking-wider">
+                CIPHER TERMINAL
               </span>
             </div>
-          </div>
 
-          {/* 60s Countdown Timer */}
-          <div className="text-right">
-            <span className="text-[10px] text-zinc-400 uppercase tracking-wider block font-bold flex items-center justify-end gap-1">
-              <TimerIcon className="w-3 h-3 text-zinc-400" /> TIME REMAINING
-            </span>
-            <span className={`text-xl sm:text-2xl font-black tracking-widest ${
-              timeLeft <= 10 ? 'text-red-500 animate-pulse' : 'text-white'
-            }`}>
-              {String(Math.floor(timeLeft / 60)).padStart(2, '0')}:{String(timeLeft % 60).padStart(2, '0')}
-            </span>
-          </div>
-        </div>
+            {/* Input Display Screen */}
+            <div className="w-full h-14 rounded-xl bg-black border border-zinc-800 flex items-center justify-center mb-4 shadow-inner">
+              <span className="text-3xl font-black tracking-widest text-white">
+                {enteredCode || <span className="text-zinc-700">_</span>}
+              </span>
+            </div>
 
-        {/* Security Alert Strikes Indicator (3-Alert System) */}
-        <div className="mb-6 p-3 rounded-xl bg-zinc-900/80 border border-zinc-800 flex items-center justify-between">
-          <span className="text-xs text-zinc-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
-            <Siren className={`w-4 h-4 ${alertCount > 0 ? 'text-red-500 animate-bounce' : 'text-zinc-500'}`} />
-            SECURITY STRIKES:
-          </span>
-          <div className="flex items-center gap-2">
-            {[1, 2, 3].map((strike) => (
-              <div
-                key={strike}
-                className={`px-2.5 py-1 rounded text-xs font-black transition-all ${
-                  alertCount >= strike
-                    ? 'bg-red-600 text-white shadow-md scale-105'
-                    : 'bg-zinc-800 text-zinc-600 border border-zinc-700/50'
-                }`}
+            {/* Interactive Keypad (1-9, CLEAR, 0, DECRYPT) */}
+            <div className="grid grid-cols-3 gap-2">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((digit) => (
+                <button
+                  key={digit}
+                  type="button"
+                  onClick={() => handleKeyClick(String(digit))}
+                  className="h-12 rounded-xl bg-zinc-900 hover:bg-zinc-800 active:bg-zinc-700 border border-zinc-800 hover:border-zinc-700 text-white font-black text-lg transition-all active:scale-95 flex items-center justify-center shadow-sm"
+                >
+                  {digit}
+                </button>
+              ))}
+
+              {/* Clear Key */}
+              <button
+                type="button"
+                onClick={handleClear}
+                className="h-12 rounded-xl bg-zinc-900/60 hover:bg-zinc-800 active:bg-zinc-700 border border-zinc-800 text-zinc-400 hover:text-white font-bold text-xs uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center"
               >
-                ALERT {strike}
-              </div>
-            ))}
+                CLEAR
+              </button>
+
+              {/* Zero Key */}
+              <button
+                type="button"
+                onClick={() => handleKeyClick('0')}
+                className="h-12 rounded-xl bg-zinc-900 hover:bg-zinc-800 active:bg-zinc-700 border border-zinc-800 hover:border-zinc-700 text-white font-black text-lg transition-all active:scale-95 flex items-center justify-center shadow-sm"
+              >
+                0
+              </button>
+
+              {/* Submit / Decrypt Key */}
+              <button
+                type="button"
+                onClick={() => processAnswer()}
+                disabled={!enteredCode}
+                className="h-12 rounded-xl bg-white hover:bg-zinc-200 active:bg-zinc-300 disabled:opacity-30 disabled:cursor-not-allowed text-black font-black text-xs uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center shadow-md"
+              >
+                DECRYPT
+              </button>
+            </div>
           </div>
         </div>
-
-        {/* Easy Decryption Puzzle Screen */}
-        <div className="mb-6 p-5 rounded-xl bg-zinc-900 border border-zinc-800 text-center">
-          <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest block mb-1">
-            SOLVE CIPHER TO UNLOCK LAYER {level}
-          </span>
-          <div className="text-3xl sm:text-4xl font-black text-white tracking-widest my-2">
-            {puzzle.question || '4 + 3 = ?'}
-          </div>
-          <span className="text-[11px] text-zinc-500 block">
-            Tip: {puzzle.hint || 'Calculate code and enter below'}
-          </span>
-        </div>
-
-        {/* Keypad Display Input */}
-        <div className="mb-5">
-          <div className="w-full h-14 rounded-xl bg-black border border-zinc-700 flex items-center justify-between px-4">
-            <span className="text-xs text-zinc-500 uppercase tracking-wider font-bold">
-              INPUT CODE:
-            </span>
-            <span className="text-2xl font-black tracking-widest text-white">
-              {enteredCode || <span className="text-zinc-700">_ _</span>}
-            </span>
-          </div>
-        </div>
-
-        {/* Interactive Keypad Grid (1-9, Clear, 0, Submit) */}
-        <div className="grid grid-cols-3 gap-2.5">
-          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((digit) => (
-            <button
-              key={digit}
-              type="button"
-              onClick={() => handleKeyClick(String(digit))}
-              className="h-12 rounded-xl bg-zinc-900 hover:bg-zinc-800 active:bg-zinc-700 border border-zinc-800 hover:border-zinc-700 text-white font-black text-lg transition-all active:scale-95 flex items-center justify-center shadow-sm"
-            >
-              {digit}
-            </button>
-          ))}
-
-          {/* Clear Key */}
-          <button
-            type="button"
-            onClick={handleClear}
-            className="h-12 rounded-xl bg-zinc-900/60 hover:bg-zinc-800 active:bg-zinc-700 border border-zinc-800 text-zinc-400 hover:text-white font-bold text-xs uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center"
-          >
-            CLEAR
-          </button>
-
-          {/* Zero Key */}
-          <button
-            type="button"
-            onClick={() => handleKeyClick('0')}
-            className="h-12 rounded-xl bg-zinc-900 hover:bg-zinc-800 active:bg-zinc-700 border border-zinc-800 hover:border-zinc-700 text-white font-black text-lg transition-all active:scale-95 flex items-center justify-center shadow-sm"
-          >
-            0
-          </button>
-
-          {/* Submit Key */}
-          <button
-            type="button"
-            onClick={() => submitSolution()}
-            disabled={!enteredCode}
-            className="h-12 rounded-xl bg-white hover:bg-zinc-200 active:bg-zinc-300 disabled:opacity-30 disabled:cursor-not-allowed text-black font-black text-xs uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center shadow-md"
-          >
-            SUBMIT
-          </button>
-        </div>
-
-        {/* Operational Status Log */}
-        {statusMessage && (
-          <div className="mt-5 p-3 rounded-lg bg-zinc-900/50 border border-zinc-800/80 text-center">
-            <p className="text-[11px] text-zinc-400 font-mono tracking-wide">
-              {statusMessage}
-            </p>
-          </div>
-        )}
       </div>
 
-      {/* POPUP MODAL 1: Alert 2 Level Demotion Warning Modal */}
+      {/* POPUP MODAL 1: Clean & Minimal Alert 2 Demotion Warning Modal */}
       {showDemotionModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-fadeIn">
-          <div className="relative w-full max-w-md rounded-2xl bg-zinc-950 border border-red-600/80 p-6 sm:p-8 shadow-2xl text-center font-mono">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-red-950/60 border border-red-500 text-red-500 mb-4 animate-bounce">
-              <AlertTriangle className="w-8 h-8" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm animate-fadeIn">
+          <div className="relative w-full max-w-sm rounded-2xl bg-zinc-950 border border-red-500/80 p-6 sm:p-7 shadow-2xl text-center font-mono">
+            {/* Minimal Alert Icon */}
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-red-950/60 border border-red-500/80 text-red-500 mb-4 animate-bounce">
+              <AlertTriangle className="w-7 h-7" />
             </div>
 
-            <h3 className="text-xl sm:text-2xl font-black text-white uppercase tracking-tight mb-2">
-              SECURITY ALERT 2!
+            {/* Clear, Minimal Header */}
+            <h3 className="text-xl font-black text-white uppercase tracking-tight mb-1">
+              SECURITY ALERT 2
             </h3>
-            <p className="text-xs text-red-400 font-bold tracking-widest uppercase mb-4">
-              LEVEL DEMOTED & COUNTERMEASURES ACTIVATED
+            <p className="text-xs text-red-400 font-bold uppercase tracking-wider mb-4">
+              LEVEL DEMOTED
             </p>
 
-            <div className="p-4 rounded-xl bg-red-950/30 border border-red-900/50 text-left text-xs text-zinc-300 space-y-2 mb-6">
-              <p>
-                ⚠️ <strong>PENALTY APPLIED:</strong> Your infiltration layer has been demoted by 1 level due to repeated breaches.
-              </p>
-              <p className="text-red-300 font-bold">
-                🚨 CRITICAL WARNING: You only have 1 CHANCE LEFT before maximum lockdown and arrest!
-              </p>
-              <p className="text-[11px] text-zinc-400">
-                (තව එක chance එකයි තියෙන්නේ! Next failure will trigger operative arrest.)
-              </p>
+            {/* Clean 1-Line Warning Box (No verbose paragraphs, English only) */}
+            <div className="p-3.5 rounded-xl bg-red-950/30 border border-red-900/50 text-xs text-red-300 font-bold mb-5">
+              1 CHANCE REMAINING BEFORE ARREST
             </div>
 
+            {/* Action Button */}
             <button
               onClick={() => {
-                cyberAudio.playClick();
+                if (cyberAudio?.playClick) cyberAudio.playClick();
                 setShowDemotionModal(false);
               }}
-              className="w-full py-3 px-4 rounded-xl bg-white hover:bg-zinc-200 text-black font-black text-xs uppercase tracking-wider transition-all shadow-lg active:scale-95"
+              className="w-full py-3 px-4 rounded-xl bg-white hover:bg-zinc-200 text-black font-black text-xs uppercase tracking-wider transition-all shadow-md active:scale-95"
             >
-              RESUME INFILTRATION [CONTINUE]
+              CONTINUE
             </button>
           </div>
         </div>
       )}
 
-      {/* POPUP MODAL 2: Alert 3 Arrested / Busted Modal */}
+      {/* POPUP MODAL 2: Clean & Minimal Alert 3 Arrested Modal */}
       {isArrested && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/95 backdrop-blur-md animate-fadeIn">
-          <div className="relative w-full max-w-md rounded-2xl bg-zinc-950 border-2 border-red-600 p-6 sm:p-8 shadow-2xl text-center font-mono">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-600 text-white mb-4 animate-pulse">
-              <Siren className="w-9 h-9" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/95 backdrop-blur-sm animate-fadeIn">
+          <div className="relative w-full max-w-sm rounded-2xl bg-zinc-950 border-2 border-red-600 p-6 sm:p-7 shadow-2xl text-center font-mono">
+            {/* Siren Icon */}
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-red-600 text-white mb-4 animate-pulse">
+              <Siren className="w-7 h-7" />
             </div>
 
-            <h2 className="text-2xl sm:text-3xl font-black text-white uppercase tracking-tight mb-1">
-              OPERATIVE ARRESTED!
+            {/* Minimal Header */}
+            <h2 className="text-xl font-black text-white uppercase tracking-tight mb-1">
+              OPERATIVE ARRESTED
             </h2>
-            <p className="text-xs text-red-500 font-bold uppercase tracking-widest mb-4">
-              MAXIMUM SECURITY LOCKDOWN TRIGGERED (3/3 ALERTS)
+            <p className="text-xs text-red-500 font-bold uppercase tracking-wider mb-5">
+              MAXIMUM SECURITY LOCKDOWN (3/3 ALERTS)
             </p>
 
-            <div className="p-4 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-400 space-y-2 mb-6 text-left">
-              <p>
-                The bank's automated defenses detected unauthorized frequency manipulation. The vault doors have engaged titanium deadbolts and syndicate signals are severed.
-              </p>
-            </div>
-
-            <div className="space-y-3">
+            {/* Action Buttons */}
+            <div className="space-y-2.5">
               <button
                 onClick={() => {
-                  cyberAudio.playClick();
+                  if (cyberAudio?.playClick) cyberAudio.playClick();
                   startNewGame();
                 }}
-                className="w-full py-3 px-4 rounded-xl bg-red-600 hover:bg-red-500 text-white font-black text-xs uppercase tracking-wider transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2"
+                className="w-full py-3 px-4 rounded-xl bg-red-600 hover:bg-red-500 text-white font-black text-xs uppercase tracking-wider transition-all shadow-md active:scale-95 flex items-center justify-center gap-2"
               >
                 <RotateCcw className="w-4 h-4" />
-                <span>RETRY INFILTRATION (NEW ATTEMPT)</span>
+                <span>TRY AGAIN</span>
               </button>
 
               <button
                 onClick={() => {
-                  cyberAudio.playClick();
+                  if (cyberAudio?.playClick) cyberAudio.playClick();
                   onExit();
                 }}
                 className="w-full py-3 px-4 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 font-bold text-xs uppercase tracking-wider transition-all"
@@ -442,46 +534,36 @@ export default function VaultGame({ agent, onExit }) {
         </div>
       )}
 
-      {/* POPUP MODAL 3: Vault Cracked (Victory Modal) */}
+      {/* POPUP MODAL 3: Clean & Minimal Vault Cracked (Victory Modal) */}
       {isVaultCracked && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/95 backdrop-blur-md animate-fadeIn">
-          <div className="relative w-full max-w-md rounded-2xl bg-zinc-950 border-2 border-white p-6 sm:p-8 shadow-2xl text-center font-mono">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white text-black mb-4">
-              <Unlock className="w-9 h-9" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/95 backdrop-blur-sm animate-fadeIn">
+          <div className="relative w-full max-w-sm rounded-2xl bg-zinc-950 border-2 border-white p-6 sm:p-7 shadow-2xl text-center font-mono">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-white text-black mb-4">
+              <Unlock className="w-7 h-7" />
             </div>
 
-            <h2 className="text-2xl sm:text-3xl font-black text-white uppercase tracking-tight mb-1">
-              VAULT CRACKED!
+            <h2 className="text-xl font-black text-white uppercase tracking-tight mb-1">
+              VAULT CRACKED
             </h2>
-            <p className="text-xs text-emerald-400 font-bold uppercase tracking-widest mb-4">
-              MISSION ACCOMPLISHED // ALL 3 LAYERS BREACHED
+            <p className="text-xs text-emerald-400 font-bold uppercase tracking-wider mb-5">
+              MISSION ACCOMPLISHED // ACCESS GRANTED
             </p>
 
-            <div className="p-4 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-300 space-y-2 mb-6 text-left">
-              <p>
-                Congratulations Operative <strong className="text-white">[{agent?.nick_name || 'GHOST'}]</strong>! All 3 security layers decrypted successfully.
-              </p>
-              <div className="p-2.5 rounded bg-black/60 border border-zinc-800 flex items-center justify-between text-xs font-bold">
-                <span className="text-zinc-400">BOUNTY REWARD:</span>
-                <span className="text-white">+100 SYNDICATE CREDITS</span>
-              </div>
-            </div>
-
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               <button
                 onClick={() => {
-                  cyberAudio.playClick();
+                  if (cyberAudio?.playClick) cyberAudio.playClick();
                   startNewGame();
                 }}
-                className="w-full py-3 px-4 rounded-xl bg-white hover:bg-zinc-200 text-black font-black text-xs uppercase tracking-wider transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2"
+                className="w-full py-3 px-4 rounded-xl bg-white hover:bg-zinc-200 text-black font-black text-xs uppercase tracking-wider transition-all shadow-md active:scale-95 flex items-center justify-center gap-2"
               >
                 <RotateCcw className="w-4 h-4" />
-                <span>INFILTRATE NEXT VAULT</span>
+                <span>NEXT HEIST</span>
               </button>
 
               <button
                 onClick={() => {
-                  cyberAudio.playClick();
+                  if (cyberAudio?.playClick) cyberAudio.playClick();
                   onExit();
                 }}
                 className="w-full py-3 px-4 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 font-bold text-xs uppercase tracking-wider transition-all"
@@ -495,4 +577,3 @@ export default function VaultGame({ agent, onExit }) {
     </div>
   );
 }
-

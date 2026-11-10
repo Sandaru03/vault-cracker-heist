@@ -11,7 +11,7 @@ class AudioManager {
     this.ctx = null;
   }
 
-  // Initialize Web Audio Context for SFX (Click, Success, Error)
+  // Initialize Web Audio Context for SFX (Click, Success, Error, Alert)
   initAudioContext() {
     if (!this.ctx && typeof window !== 'undefined') {
       const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -36,6 +36,11 @@ class AudioManager {
   playError() {
     if (!this.sfxEnabled) return;
     this.playTone(200, 0.15, 'sawtooth');
+  }
+
+  playAlert() {
+    if (!this.sfxEnabled) return;
+    this.playTone(250, 0.2, 'sawtooth');
   }
 
   playTone(freq, duration, type = 'sine') {
