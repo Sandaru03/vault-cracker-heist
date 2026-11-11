@@ -127,6 +127,20 @@ export function AuthProvider({ children }) {
     return guestAgent;
   };
 
+  // Update operative score and badge when vault is cracked
+  const updateScore = (points = 100) => {
+    setAgent((prev) => {
+      if (!prev) return prev;
+      const updated = {
+        ...prev,
+        score: (Number(prev.score) || 0) + points,
+        unlocked_badges: 'VAULT_BREAKER'
+      };
+      localStorage.setItem('vault_agent', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   const logout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
@@ -148,6 +162,7 @@ export function AuthProvider({ children }) {
         login,
         register,
         playAsGuest,
+        updateScore,
         logout,
         isAuthenticated: !!agent,
       }}
