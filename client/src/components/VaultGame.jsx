@@ -11,6 +11,7 @@ import {
   HelpCircle
 } from 'lucide-react';
 import { cyberAudio } from '../utils/audio';
+import { useAuth } from '../context/AuthContext';
 
 /**
  * Event-Driven Vault Game Component
@@ -25,6 +26,8 @@ import { cyberAudio } from '../utils/audio';
  *     Alert 3: Maximum breach -> Operative Arrested
  */
 export default function VaultGame({ agent, onExit }) {
+  const { updateScore } = useAuth();
+
   // Game states
   const [level, setLevel] = useState(1);
   const [alertCount, setAlertCount] = useState(0);
@@ -190,6 +193,7 @@ export default function VaultGame({ agent, onExit }) {
         // Level 3 Solved -> Vault Cracked!
         setIsVaultCracked(true);
         setStatusMessage('ALL 3 LAYERS BREACHED! VAULT CRACKED!');
+        if (updateScore) updateScore(100);
       }
 
       // Notify backend API
@@ -545,9 +549,13 @@ export default function VaultGame({ agent, onExit }) {
             <h2 className="text-xl font-black text-white uppercase tracking-tight mb-1">
               VAULT CRACKED
             </h2>
-            <p className="text-xs text-emerald-400 font-bold uppercase tracking-wider mb-5">
+            <p className="text-xs text-emerald-400 font-bold uppercase tracking-wider mb-3">
               MISSION ACCOMPLISHED // ACCESS GRANTED
             </p>
+
+            <div className="inline-block px-3 py-1 rounded-full bg-emerald-950/80 border border-emerald-500/60 text-emerald-400 text-xs font-bold uppercase mb-5">
+              +100 PTS REWARD EARNED
+            </div>
 
             <div className="space-y-2.5">
               <button

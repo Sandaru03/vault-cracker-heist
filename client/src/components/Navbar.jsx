@@ -32,7 +32,7 @@ export default function Navbar() {
                 VAULT CRACKER
               </span>
               <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-400">
-                v1.0.0
+                v1.1.0
               </span>
             </div>
             <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono">
