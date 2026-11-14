@@ -305,8 +305,8 @@ export default function VaultGame({ agent, onExit }) {
           </span>
         </div>
 
-        {/* 60s Countdown Timer */}
-        <div className="text-center sm:text-right">
+        {/* 60s Countdown Timer with Dynamic Progress Bar */}
+        <div className="text-center sm:text-right min-w-[140px]">
           <span className="text-[10px] text-zinc-500 uppercase tracking-wider block font-bold flex items-center justify-center sm:justify-end gap-1">
             <TimerIcon className="w-3 h-3 text-zinc-400" /> TIME REMAINING
           </span>
@@ -315,6 +315,20 @@ export default function VaultGame({ agent, onExit }) {
           }`}>
             {String(Math.floor(timeLeft / 60)).padStart(2, '0')}:{String(timeLeft % 60).padStart(2, '0')}
           </span>
+
+          {/* Visual Timer Progress Bar: Green -> Amber -> Pulsing Red */}
+          <div className="w-full bg-zinc-900 h-1.5 rounded-full overflow-hidden mt-1.5 border border-zinc-800">
+            <div
+              className={`h-full transition-all duration-1000 ease-linear rounded-full ${
+                timeLeft > 25
+                  ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]'
+                  : timeLeft > 10
+                  ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]'
+                  : 'bg-red-500 animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.8)]'
+              }`}
+              style={{ width: `${(timeLeft / 60) * 100}%` }}
+            />
+          </div>
         </div>
 
         {/* 3-Alert Security Strikes (Alert 1, Alert 2, Alert 3) */}
